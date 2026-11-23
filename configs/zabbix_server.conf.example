@@ -1,0 +1,14 @@
+# /etc/zabbix/zabbix_server.conf  —  relevant lines for this lab
+# Full file: /etc/zabbix/zabbix_server.conf on the server VM
+
+LogFile=/var/log/zabbix/zabbix_server.log
+LogFileSize=0
+PidFile=/run/zabbix/zabbix_server.pid
+
+DBHost=localhost
+DBName=zabbix
+DBUser=zabbix
+DBPassword=<YOUR_DB_PASSWORD>      # replace — never commit the real value
+
+# Default ports (shown for clarity)
+ListenPort=10051
