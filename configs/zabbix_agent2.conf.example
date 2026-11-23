@@ -8,7 +8,7 @@ Server=<SERVER_IP>
 ServerActive=<SERVER_IP>
 
 # Must match the Host name set in the Zabbix web UI exactly
-Hostname=zbx-desktop
+Hostname=ubuntud
 
 ListenPort=10050
 LogFile=/var/log/zabbix/zabbix_agent2.log

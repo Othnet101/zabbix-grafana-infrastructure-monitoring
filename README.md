@@ -29,7 +29,7 @@ INTERNET / Your PC
       │  VMware NAT (VMnet8)
       ├─────────────────────────────────────────────────┐
       │                                                 │
-  VM 1 — zbx-server (Ubuntu Server 24.04)         VM 2 — zbx-desktop (Ubuntu Desktop 24.04)
+  VM 1 — ubuntus (Ubuntu Server 24.04)         VM 2 — ubuntud (Ubuntu Desktop 24.04)
   ┌──────────────────────────────────┐             ┌─────────────────────────────┐
   │  Zabbix Server     :10051        │◄──TCP 10050─┤  Zabbix Agent 2   :10050    │
   │  MySQL DB          :3306 (local) │             │                             │
@@ -58,8 +58,8 @@ INTERNET / Your PC
 
 | VM | CPU | RAM | Disk | Role |
 |----|-----|-----|------|------|
-| zbx-server (Ubuntu Server) | 2 vCPU | 4 GB | 25 GB | Monitoring server |
-| zbx-desktop (Ubuntu Desktop) | 2 vCPU | 4 GB | 25 GB | Supervised machine + browser |
+| ubuntus (Ubuntu Server) | 2 vCPU | 4 GB | 25 GB | Monitoring server |
+| ubuntud (Ubuntu Desktop) | 2 vCPU | 4 GB | 25 GB | Supervised machine + browser |
 
 ---
 
@@ -72,8 +72,8 @@ INTERNET / Your PC
 sudo apt update && sudo apt -y upgrade
 
 # Set hostnames
-sudo hostnamectl set-hostname zbx-server    # on the Server VM
-sudo hostnamectl set-hostname zbx-desktop   # on the Desktop VM
+sudo hostnamectl set-hostname ubuntus    # on the Server VM
+sudo hostnamectl set-hostname ubuntud   # on the Desktop VM
 
 # Find your IP address (look for 192.168.x.y)
 ip -br a
@@ -85,7 +85,7 @@ ping -c 3 <DESKTOP_IP>   # run on Server
 
 ---
 
-### Step 1 — Install Zabbix Server (on zbx-server)
+### Step 1 — Install Zabbix Server (on ubuntus)
 
 ```bash
 # 1.1 Add the Zabbix 7.0 official repository
@@ -150,7 +150,7 @@ Then log in with **Admin / zabbix** and immediately change the password.
 
 ---
 
-### Step 3 — Zabbix Agent on zbx-desktop
+### Step 3 — Zabbix Agent on ubuntud
 
 ```bash
 # 3.1 Add repo and install
@@ -161,7 +161,7 @@ sudo apt update && sudo apt install -y zabbix-agent2
 # 3.2 Configure (replace SERVER_IP with your real value)
 sudo sed -i 's/^Server=.*/Server=<SERVER_IP>/'             /etc/zabbix/zabbix_agent2.conf
 sudo sed -i 's/^ServerActive=.*/ServerActive=<SERVER_IP>/' /etc/zabbix/zabbix_agent2.conf
-sudo sed -i 's/^Hostname=.*/Hostname=zbx-desktop/'         /etc/zabbix/zabbix_agent2.conf
+sudo sed -i 's/^Hostname=.*/Hostname=ubuntud/'         /etc/zabbix/zabbix_agent2.conf
 
 # Verify
 grep -E '^(Server|ServerActive|Hostname)=' /etc/zabbix/zabbix_agent2.conf
@@ -172,7 +172,7 @@ ss -tlnp | grep 10050    # a line = agent is listening
 
 # 3.4 Test from the SERVER (not the desktop)
 zabbix_get -s <DESKTOP_IP> -k agent.ping           # → 1
-zabbix_get -s <DESKTOP_IP> -k system.hostname      # → zbx-desktop
+zabbix_get -s <DESKTOP_IP> -k system.hostname      # → ubuntud
 zabbix_get -s <DESKTOP_IP> -k system.cpu.load[all,avg1]
 ```
 
@@ -180,7 +180,7 @@ Then in the Zabbix web UI: **Data collection › Hosts › Create host**
 
 | Field | Value |
 |-------|-------|
-| Host name | `zbx-desktop` |
+| Host name | `ubuntud` |
 | Templates | `Linux by Zabbix agent` |
 | Host groups | `Linux servers` |
 | Interfaces | Agent · IP `<DESKTOP_IP>` · port `10050` |
@@ -206,7 +206,7 @@ Watch **Monitoring › Problems** in the Zabbix UI for the alert.
 
 ---
 
-### Step 5 — Install Grafana (on zbx-server)
+### Step 5 — Install Grafana (on ubuntus)
 
 ```bash
 # 5.1 Add Grafana repository
@@ -246,11 +246,11 @@ Create a new dashboard (**Dashboards › New › New dashboard**) and add these 
 
 | Panel | Type | Query (Group / Host / Item) |
 |-------|------|-----------------------------|
-| CPU utilization | Time series | Linux servers / zbx-desktop / CPU utilization |
-| Memory used | Gauge (0–100%) | Linux servers / zbx-desktop / Memory utilization |
-| Uptime | Stat (seconds) | Linux servers / zbx-desktop / Uptime |
-| Disk used on / | Bar gauge | Linux servers / zbx-desktop / Space: Used, in % on / |
-| Active problems | Table (Problems) | Group: Linux servers · Host: zbx-desktop |
+| CPU utilization | Time series | Linux servers / ubuntud / CPU utilization |
+| Memory used | Gauge (0–100%) | Linux servers / ubuntud / Memory utilization |
+| Uptime | Stat (seconds) | Linux servers / ubuntud / Uptime |
+| Disk used on / | Bar gauge | Linux servers / ubuntud / Space: Used, in % on / |
+| Active problems | Table (Problems) | Group: Linux servers · Host: ubuntud |
 
 Set time range to **Last 1 hour**, refresh to **10 s**.
 
