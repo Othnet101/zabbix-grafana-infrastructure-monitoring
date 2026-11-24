@@ -1,4 +1,4 @@
-# 📊 Zabbix + Grafana Infrastructure Monitoring
+# Zabbix + Grafana Infrastructure Monitoring
 
 A hands-on lab that builds a complete monitoring stack using **Zabbix 7.0 LTS** and **Grafana** on two Ubuntu 24.04 VMs running in VMware Workstation.
 
@@ -6,22 +6,22 @@ Zabbix collects metrics, stores them, and raises alerts. Grafana reads from the 
 
 ---
 
-## 🧰 Stack & Versions
+## Componennts & Versions
 
 | Component | Version |
 |-----------|---------|
 | OS (both VMs) | Ubuntu 24.04.3 LTS |
 | Hypervisor | VMware Workstation (NAT — VMnet8) |
 | Zabbix Server | 7.0 LTS |
-| Zabbix Agent | Agent 2 (Go-based) |
-| Database | MySQL (bundled with Zabbix) |
+| Zabbix Agent | Agent 2 |
+| Database | MySQL |
 | Web server | Apache 2 |
-| Grafana | Latest stable (≥ 11.6) |
+| Grafana | Latest stable (>= 11.6) |
 | Grafana plugin | alexanderzobnin-zabbix-app |
 
 ---
 
-## 🗺️ Architecture
+## Architecture
 
 ```
 INTERNET / Your PC
@@ -33,7 +33,7 @@ INTERNET / Your PC
   ┌──────────────────────────────────┐             ┌─────────────────────────────┐
   │  Zabbix Server     :10051        │◄──TCP 10050─┤  Zabbix Agent 2   :10050    │
   │  MySQL DB          :3306 (local) │             │                             │
-  │  Apache + Zabbix UI:80           │             │  Firefox (browser)          │
+  │  Apache +          :80           │             |    WEB UI                   |
   │  Grafana           :3000         │◄──API───────│    http://SERVER_IP/zabbix  │
   │  Zabbix Agent 2    :10050        │             │    http://SERVER_IP:3000    │
   └──────────────────────────────────┘             └─────────────────────────────┘
@@ -43,44 +43,37 @@ INTERNET / Your PC
 
 ---
 
-## 🎯 Lab Goals
+## Lab Goals
 
-- [x] Both VMs communicate over VMnet8 (NAT)
 - [x] Zabbix server + MySQL + Apache web UI running
 - [x] Zabbix Agent 2 installed and configured on the Desktop VM
-- [x] Host visible with a green **ZBX** icon in the web UI
+- [x] Host visible and available to supervise in the web UI
 - [x] Real alert triggered via CPU stress test (`stress-ng`)
-- [x] Grafana dashboard with live CPU, RAM, disk, uptime and active problems
+- [x] Grafana dashboard with live CPU Usage & Problems
 
 ---
 
-## ⚙️ VM Specifications
+## VM Specifications
 
 | VM | CPU | RAM | Disk | Role |
 |----|-----|-----|------|------|
-| ubuntus (Ubuntu Server) | 2 vCPU | 4 GB | 25 GB | Monitoring server |
-| ubuntud (Ubuntu Desktop) | 2 vCPU | 4 GB | 25 GB | Supervised machine + browser |
+| ubuntus (Ubuntu Server) | 2 vCPU | 4 GB | 60 GB | Monitoring server |
+| ubuntud (Ubuntu Desktop) | 3 vCPU | 6 GB | 60 GB | Supervised machine + browser |
 
 ---
 
-## 🚀 Setup Steps
+## Setup Steps
 
 ### Step 0 — Prepare the VMs
 
 ```bash
-# On BOTH VMs
-sudo apt update && sudo apt -y upgrade
-
-# Set hostnames
-sudo hostnamectl set-hostname ubuntus    # on the Server VM
-sudo hostnamectl set-hostname ubuntud   # on the Desktop VM
-
-# Find your IP address (look for 192.168.x.y)
-ip -br a
+# On BOTH VMs set hostnames
+sudo hostnamectl set-hostname ubuntus    # Server 
+sudo hostnamectl set-hostname ubuntud   # Desktop
 
 # Verify connectivity
-ping -c 3 <SERVER_IP>    # run on Desktop
-ping -c 3 <DESKTOP_IP>   # run on Server
+ping -c 3 <SERVER_IP>    
+ping -c 3 <DESKTOP_IP>   
 ```
 
 ---
@@ -102,19 +95,19 @@ zabbix_server --version    # verify: 7.0.x
 # 1.3 Create the database
 sudo mysql <<'EOF'
 create database zabbix character set utf8mb4 collate utf8mb4_bin;
-create user 'zabbix'@'localhost' identified by 'ZbxLab_2026_Pass';
+create user 'zabbix'@'localhost' identified by '"your password"';
 grant all privileges on zabbix.* to 'zabbix'@'localhost';
 set global log_bin_trust_function_creators = 1;
 quit;
 EOF
 
-# 1.4 Import the schema (takes ~2 minutes)
+# 1.4 Import the schema 
 zcat /usr/share/zabbix-sql-scripts/mysql/server.sql.gz \
   | mysql --default-character-set=utf8mb4 -uzabbix -p zabbix
 sudo mysql -e "set global log_bin_trust_function_creators = 0;"
 
 # 1.5 Set the DB password in zabbix_server.conf
-sudo sed -i 's/^# DBPassword=/DBPassword=ZbxLab_2026_Pass/' /etc/zabbix/zabbix_server.conf
+sudo sed -i 's/^# DBPassword=/DBPassword="your password"/' /etc/zabbix/zabbix_server.conf
 
 # 1.6 Start and enable services
 sudo systemctl restart zabbix-server zabbix-agent2 apache2
@@ -122,18 +115,18 @@ sudo systemctl enable  zabbix-server zabbix-agent2 apache2
 systemctl status zabbix-server --no-pager    # expect: active (running)
 ```
 
-#### Optional — firewall rules (if ufw is active)
+#### firewall rules (if ufw is active)
 
 ```bash
 sudo ufw allow 22/tcp      # SSH
 sudo ufw allow 80/tcp      # Zabbix web UI
 sudo ufw allow 3000/tcp    # Grafana
-sudo ufw allow 10051/tcp   # Zabbix server (active agents)
+sudo ufw allow 10051/tcp   # Zabbix server 
 ```
 
 ---
 
-### Step 2 — Zabbix Web Wizard (from Desktop Firefox)
+### Step 2 — Zabbix Web Wizard (from Desktop Browser)
 
 Go to `http://<SERVER_IP>/zabbix` and complete the 6-screen wizard:
 
@@ -158,7 +151,7 @@ wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix
 sudo dpkg -i zabbix-release_latest_7.0+ubuntu24.04_all.deb
 sudo apt update && sudo apt install -y zabbix-agent2
 
-# 3.2 Configure (replace SERVER_IP with your real value)
+# 3.2 Configure "zabbix_agent2.conf"
 sudo sed -i 's/^Server=.*/Server=<SERVER_IP>/'             /etc/zabbix/zabbix_agent2.conf
 sudo sed -i 's/^ServerActive=.*/ServerActive=<SERVER_IP>/' /etc/zabbix/zabbix_agent2.conf
 sudo sed -i 's/^Hostname=.*/Hostname=ubuntud/'         /etc/zabbix/zabbix_agent2.conf
@@ -168,10 +161,10 @@ grep -E '^(Server|ServerActive|Hostname)=' /etc/zabbix/zabbix_agent2.conf
 
 # 3.3 Start
 sudo systemctl enable --now zabbix-agent2
-ss -tlnp | grep 10050    # a line = agent is listening
+ss -tlnp | grep 10050    # test if agent is listening
 
-# 3.4 Test from the SERVER (not the desktop)
-zabbix_get -s <DESKTOP_IP> -k agent.ping           # → 1
+# 3.4 Test from the SERVER
+zabbix_get -s <DESKTOP_IP> -k agent.ping           # output = 1
 zabbix_get -s <DESKTOP_IP> -k system.hostname      # → ubuntud
 zabbix_get -s <DESKTOP_IP> -k system.cpu.load[all,avg1]
 ```
@@ -190,16 +183,13 @@ Then in the Zabbix web UI: **Data collection › Hosts › Create host**
 ### Step 4 — Trigger a Real Alert
 
 ```bash
-# CPU stress test (on Desktop) — runs for 10 minutes
+# CPU stress test 
 sudo apt install -y stress-ng
 stress-ng --cpu 0 --timeout 600s
 
-# In another terminal, watch the load:
-top
-
 # Agent availability test: stop then restart
-sudo systemctl stop zabbix-agent2    # wait → ZBX turns red
-sudo systemctl start zabbix-agent2   # wait → resolves automatically
+sudo systemctl stop zabbix-agent2    # wait = ZBX turns red
+sudo systemctl start zabbix-agent2   # wait = resolves automatically
 ```
 
 Watch **Monitoring › Problems** in the Zabbix UI for the alert.
@@ -224,7 +214,7 @@ sudo grafana-cli plugins install alexanderzobnin-zabbix-app
 sudo systemctl restart grafana-server
 ```
 
-Then in Firefox → `http://<SERVER_IP>:3000` (login: **admin / admin**, change on first login):
+Then in browser : `http://<SERVER_IP>:3000` (login: **admin / admin**, change on first login):
 
 1. **Administration › Plugins** → search `Zabbix` → **Enable**
 2. **Connections › Data sources › Add** → choose `Zabbix`
@@ -236,7 +226,7 @@ Then in Firefox → `http://<SERVER_IP>:3000` (login: **admin / admin**, change 
 | Auth type | Username and password |
 | Username / Password | Your Zabbix Admin credentials |
 
-4. Click **Save & test** → green ✅ with Zabbix API version = success.
+4. Click **Save & test** = green with Zabbix API version = success.
 
 ---
 
@@ -253,47 +243,6 @@ Create a new dashboard (**Dashboards › New › New dashboard**) and add these 
 | Active problems | Table (Problems) | Group: Linux servers · Host: ubuntud |
 
 Set time range to **Last 1 hour**, refresh to **10 s**.
-
----
-
-## 🔧 Key Ports Reference
-
-| Port | Service | Direction |
-|------|---------|-----------|
-| 10050 | Zabbix Agent 2 (passive) | Server → Agent |
-| 10051 | Zabbix Server (active) | Agent → Server |
-| 80 | Zabbix Web UI (Apache) | Browser → Server |
-| 3000 | Grafana | Browser → Server |
-| 3306 | MySQL | Local only |
-
----
-
-## 🩺 Troubleshooting Cheat Sheet
-
-| Symptom | Likely cause | Fix |
-|---------|-------------|-----|
-| ZBX icon red or grey | Agent stopped / wrong IP / firewall / wrong `Server=` | `zabbix_get -s <DESKTOP_IP> -k agent.ping` from server |
-| "Zabbix server is not running" on dashboard | Server crashed or wrong DBPassword | `systemctl status zabbix-server` → check log |
-| Web page doesn't open | Apache stopped or wrong URL | `systemctl status apache2`; use `/zabbix` suffix |
-| Items show "Not supported" | Wrong key or agent can't read metric | Hover red icon; test with `zabbix_get` |
-| Active checks give no data | `Hostname=` doesn't match host name in UI | Make both identical exactly; check agent log |
-| Grafana plugin not in list | Not restarted or not enabled | `systemctl restart grafana-server` then enable in Plugins |
-| Data source test fails | Wrong URL or credentials | URL must end with `/api_jsonrpc.php` |
-
----
-
-## 📁 Repo Structure
-
-```
-zabbix-grafana-infrastructure-monitoring/
-├── configs/
-│   ├── zabbix_server.conf.example     # Server config key lines
-│   └── zabbix_agent2.conf.example     # Agent config (Desktop VM)
-├── screenshots/                       # Your lab screenshots go here
-│   └── README.md
-├── docs/                              # Extra documentation
-└── README.md
-```
 
 ---
 
