@@ -1,4 +1,4 @@
-# /etc/zabbix/zabbix_agent2.conf  —  relevant lines for the Desktop VM
+# /etc/zabbix/zabbix_agent2.conf  —  Configuration of the suppervised VM (ubuntu Desktop)
 # Edit with:  sudo nano /etc/zabbix/zabbix_agent2.conf
 
 # Passive checks: server IP allowed to query me
@@ -7,7 +7,7 @@ Server=<SERVER_IP>
 # Active checks: where I send data
 ServerActive=<SERVER_IP>
 
-# Must match the Host name set in the Zabbix web UI exactly
+# Must match the Host name set in the "Zabbix web UI" config
 Hostname=ubuntud
 
 ListenPort=10050
